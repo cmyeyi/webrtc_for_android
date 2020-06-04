@@ -1,2 +1,2 @@
-# webrtc_android
-webrtc for android
+# webrtc for android
+The simplest tutorial for android WebRTC
