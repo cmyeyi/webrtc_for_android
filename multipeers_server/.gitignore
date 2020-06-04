@@ -48,6 +48,4 @@ package-lock.json
 
 # Yarn Integrity file
 .yarn-integrity
-
-cert.pem
-key.pem
+.idea
