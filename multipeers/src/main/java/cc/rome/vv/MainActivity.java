@@ -1,10 +1,14 @@
 package cc.rome.vv;
 
+import android.Manifest;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
+import pub.devrel.easypermissions.AfterPermissionGranted;
+import pub.devrel.easypermissions.AppSettingsDialog;
+import pub.devrel.easypermissions.EasyPermissions;
 
 import org.json.JSONObject;
 import org.webrtc.AudioSource;
@@ -18,7 +22,6 @@ import org.webrtc.MediaConstraints;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
 import org.webrtc.PeerConnectionFactory;
-import org.webrtc.RtpTransceiver;
 import org.webrtc.SessionDescription;
 import org.webrtc.SurfaceTextureHelper;
 import org.webrtc.SurfaceViewRenderer;
@@ -30,7 +33,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements SignalingClient.Callback {
+public class MainActivity extends AppCompatActivity implements SignalingClient.Callback, EasyPermissions.PermissionCallbacks {
 
     private EglBase.Context eglBaseContext;
     private PeerConnectionFactory peerConnectionFactory;
@@ -44,11 +47,26 @@ public class MainActivity extends AppCompatActivity implements SignalingClient.C
     private String selfSocketId;
     private String roomId;
 
+    private static final String[] CAMERA_AND_AUDIO = {Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO};
+    private static final int RC_PERMS = 100;
+    private static final int RC_CAMERA_PERM = 101;
+    private static final int RC_AUDIO_PERM = 102;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
+        if (!hasPermissions()) {
+            requestPermissions();
+        } else {
+            initWebRtc();
+        }
+    }
+
+    @AfterPermissionGranted(RC_PERMS)
+    private void initWebRtc() {
         peerConnectionMap = new HashMap<>();
         iceServers = new ArrayList<>();
         iceServers.add(PeerConnection.IceServer.builder(CommonConfig.ICE_SERVER).createIceServer());
@@ -72,7 +90,7 @@ public class MainActivity extends AppCompatActivity implements SignalingClient.C
 
         SurfaceTextureHelper surfaceTextureHelper = SurfaceTextureHelper.create("CaptureThread", eglBaseContext);
         // create VideoCapturer
-        VideoCapturer videoCapturer = createCameraCapturer(true);
+        VideoCapturer videoCapturer = createCameraCapturer(false);
         VideoSource videoSource = peerConnectionFactory.createVideoSource(videoCapturer.isScreencast());
         videoCapturer.initialize(surfaceTextureHelper, getApplicationContext(), videoSource.getCapturerObserver());
         videoCapturer.startCapture(480, 640, 30);
@@ -106,6 +124,14 @@ public class MainActivity extends AppCompatActivity implements SignalingClient.C
         SignalingClient.get().init(this);
     }
 
+    private void requestPermissions() {
+        EasyPermissions.requestPermissions(
+                this,
+                "使用前需要您授权开启摄像头和麦克风",
+                RC_PERMS,
+                CAMERA_AND_AUDIO);
+    }
+
 
     private synchronized PeerConnection getOrCreatePeerConnection(String socketId) {
         PeerConnection peerConnection = peerConnectionMap.get(socketId);
@@ -116,7 +142,7 @@ public class MainActivity extends AppCompatActivity implements SignalingClient.C
             @Override
             public void onIceCandidate(IceCandidate iceCandidate) {
                 super.onIceCandidate(iceCandidate);
-                Log.w("#####", "onIceCandidate");
+                Log.w("#####", "onIceCandidate，sdp" + iceCandidate.sdp);
                 SignalingClient.get().sendIceCandidate(iceCandidate, socketId);
             }
 
@@ -130,6 +156,11 @@ public class MainActivity extends AppCompatActivity implements SignalingClient.C
                 });
             }
 
+
+            @Override
+            public void onIceGatheringChange(PeerConnection.IceGatheringState iceGatheringState) {
+                super.onIceGatheringChange(iceGatheringState);
+            }
 
             @Override
             public void onConnectionChange(PeerConnection.PeerConnectionState newState) {
@@ -235,7 +266,7 @@ public class MainActivity extends AppCompatActivity implements SignalingClient.C
     public void onPeerLeave(String roomId, String socketId) {
         Log.e("#####[onPeerLeave]", "有人离开房间 " + roomId + ",离去者是 " + socketId);
         PeerConnection peerConnection = peerConnectionMap.get(socketId);
-        if(peerConnection != null) {
+        if (peerConnection != null) {
             peerConnection.close();
         }
     }
@@ -247,6 +278,7 @@ public class MainActivity extends AppCompatActivity implements SignalingClient.C
     }
 
     private VideoCapturer createCameraCapturer(boolean isFront) {
+        // Have permission, do the thing!
         Camera1Enumerator enumerator = new Camera1Enumerator(false);
         final String[] deviceNames = enumerator.getDeviceNames();
 
@@ -263,4 +295,45 @@ public class MainActivity extends AppCompatActivity implements SignalingClient.C
 
         return null;
     }
+
+    private boolean hasCameraPermission() {
+        return EasyPermissions.hasPermissions(this, Manifest.permission.CAMERA);
+    }
+
+    private boolean hasAudioPermission() {
+        return EasyPermissions.hasPermissions(this, Manifest.permission.RECORD_AUDIO);
+    }
+
+    private boolean hasPermissions() {
+        return EasyPermissions.hasPermissions(this, CAMERA_AND_AUDIO);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        // Forward results to EasyPermissions
+        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
+    }
+
+    @Override
+    public void onPermissionsGranted(int requestCode, List<String> perms) {
+        for (String p : perms) {
+            Log.d("Permissions", "onPermissionsGranted, p =" + p);
+        }
+    }
+
+    @Override
+    public void onPermissionsDenied(int requestCode, List<String> perms) {
+        for (String p : perms) {
+            Log.d("#####Permissions", "onPermissionsGranted, p =" + p);
+        }
+        if (perms.size() > 0) {
+            finish();
+        }
+        if (EasyPermissions.somePermissionPermanentlyDenied(this, perms)) {
+            new AppSettingsDialog.Builder(this).build().show();
+        }
+    }
+
 }

@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 28
     defaultConfig {
-        applicationId "cc.rome753.wat"
+        applicationId "cc.rome.vv"
         minSdkVersion 16
         targetSdkVersion 28
         versionCode 1
@@ -31,4 +31,5 @@ dependencies {
         exclude group: 'org.json', module: 'json'
     }
     implementation 'org.webrtc:google-webrtc:1.0.30039'
+    implementation 'pub.devrel:easypermissions:3.0.0'
 }
