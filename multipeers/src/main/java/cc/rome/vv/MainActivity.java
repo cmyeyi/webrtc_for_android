@@ -90,7 +90,7 @@ public class MainActivity extends AppCompatActivity implements SignalingClient.C
 
         SurfaceTextureHelper surfaceTextureHelper = SurfaceTextureHelper.create("CaptureThread", eglBaseContext);
         // create VideoCapturer
-        VideoCapturer videoCapturer = createCameraCapturer(false);
+        VideoCapturer videoCapturer = createCameraCapturer(true);
         VideoSource videoSource = peerConnectionFactory.createVideoSource(videoCapturer.isScreencast());
         videoCapturer.initialize(surfaceTextureHelper, getApplicationContext(), videoSource.getCapturerObserver());
         videoCapturer.startCapture(480, 640, 30);
