@@ -4,7 +4,7 @@ android {
     compileSdkVersion 28
     defaultConfig {
         applicationId "cc.rome.vv"
-        minSdkVersion 16
+        minSdkVersion 21
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
@@ -22,14 +22,19 @@ android {
     }
 }
 
+repositories {
+    flatDir { dirs 'libs' }
+}
+
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
     implementation('io.socket:socket.io-client:0.8.3') {
         // excluding org.json which is provided by Android
         exclude group: 'org.json', module: 'json'
     }
-    implementation 'org.webrtc:google-webrtc:1.0.30039'
+//    implementation 'org.webrtc:google-webrtc:1.0.30039'
     implementation 'pub.devrel:easypermissions:3.0.0'
+    implementation(name: 'libwebrtc0724007', ext: 'aar')
 }

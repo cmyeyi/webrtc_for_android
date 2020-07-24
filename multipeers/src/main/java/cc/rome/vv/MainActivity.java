@@ -18,6 +18,7 @@ import org.webrtc.DefaultVideoDecoderFactory;
 import org.webrtc.DefaultVideoEncoderFactory;
 import org.webrtc.EglBase;
 import org.webrtc.IceCandidate;
+import org.webrtc.Logging;
 import org.webrtc.MediaConstraints;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
@@ -79,7 +80,7 @@ public class MainActivity extends AppCompatActivity implements SignalingClient.C
                 .createInitializationOptions());
         PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
         DefaultVideoEncoderFactory defaultVideoEncoderFactory =
-                new DefaultVideoEncoderFactory(eglBaseContext, true, true);
+                new DefaultVideoEncoderFactory(eglBaseContext, false, false);
         DefaultVideoDecoderFactory defaultVideoDecoderFactory =
                 new DefaultVideoDecoderFactory(eglBaseContext);
         peerConnectionFactory = PeerConnectionFactory.builder()
@@ -93,7 +94,7 @@ public class MainActivity extends AppCompatActivity implements SignalingClient.C
         VideoCapturer videoCapturer = createCameraCapturer(true);
         VideoSource videoSource = peerConnectionFactory.createVideoSource(videoCapturer.isScreencast());
         videoCapturer.initialize(surfaceTextureHelper, getApplicationContext(), videoSource.getCapturerObserver());
-        videoCapturer.startCapture(480, 640, 30);
+        videoCapturer.startCapture(360, 480, 30);
 
         localView = findViewById(R.id.localView);
         localView.setMirror(true);
@@ -121,6 +122,7 @@ public class MainActivity extends AppCompatActivity implements SignalingClient.C
         mediaStream.addTrack(videoTrack);
         mediaStream.addTrack(audioTrack);
 
+        Logging.enableLogToDebugOutput(Logging.Severity.LS_VERBOSE);//打开webrtc的log输出
         SignalingClient.get().init(this);
     }
 
